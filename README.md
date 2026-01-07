@@ -1,5 +1,7 @@
 # “The Sunday Explorer vs. The Monday Commuter”: Closing the Membership Gap
 
+Click [here](https://zmsantos08.github.io/Cyclistic_Bike_Share_Analysis/) for the complete report.
+
 ## Project Overview
 This project was completed as part of the Google Data Analytics Professional Certificate Capstone. The objective was to understand how annual members and casual riders use bikes differently. These insights serve as the foundation for a new marketing strategy aimed at converting casual riders into long-term annual members.
 
@@ -10,23 +12,22 @@ The analysis uses Divvy's (Chicago's public bike-share system) historical trip d
 
 <img width="767" height="617" alt="image" src="https://github.com/user-attachments/assets/4b5c4aa9-8218-4884-8383-d9ca185ac40c" />
 
-
 ## Tools used
-SQL (BigQuery): Used for large-scale data cleaning and transformation. Click [here](https://github.com/zmsantos08/Cyclistic_Bike_Share_Analysis/blob/3750159ce86dd296b505e5bc9a447c0e7c81ad16/Cyclistic_SQLCode.sql) for the full SQL Script.
+**SQL (BigQuery):** Used for large-scale data cleaning and transformation. Click [here](https://github.com/zmsantos08/Cyclistic_Bike_Share_Analysis/blob/3750159ce86dd296b505e5bc9a447c0e7c81ad16/Cyclistic_SQLCode.sql) for the full SQL Script
 
-R / Quarto: Used for EDA, visualizations and generating the final report.
+**R / Quarto:** Used for EDA, visualizations and generating the final report, available [here](https://zmsantos08.github.io/Cyclistic_Bike_Share_Analysis/)
 
-Google Slides: Used to create stakeholder's presentation [link](https://docs.google.com/presentation/d/1zPJjSpF919dl1g38yZpMrmKigfDHsK0ZfWOnwxA1K8s/edit?usp=sharing)
+**Google Slides:** Presentation available [here](https://docs.google.com/presentation/d/1zPJjSpF919dl1g38yZpMrmKigfDHsK0ZfWOnwxA1K8s/edit?usp=sharing)
 
 ## Key Findings
-Temporal Patterns: Annual members show high activity during weekday "rush hours" (8 AM and 5 PM), suggesting a commuting pattern. Casual riders peak on weekends, indicating leisure use.
 
-Ride Duration: Casual riders consistently take longer trips on average than annual members across all days of the week.
+The main findings can be summarize in this table:
 
-Seasonal Trends: Both groups show increased ridership in summer months, but casual rider volume drops more significantly during winter.
+<img width="613" height="459" alt="image" src="https://github.com/user-attachments/assets/fd5c8680-adf3-4534-8581-4d268318f4d7" />
+
 
 ## Recommendations
-Based on the data, the following campaigns are proposed:
+Based on our findings, the following campaigns are proposed:
 
 **The “Casual” Mindset Shift:** 
 
