@@ -1,14 +1,17 @@
 # “The Sunday Explorer vs. The Monday Commuter”: Closing the Membership Gap
 
-Click [here](https://zmsantos08.github.io/Cyclistic_Bike_Share_Analysis/) for the complete report.
+Complete report [here](https://zmsantos08.github.io/Cyclistic_Bike_Share_Analysis/)
+
+Presentation [here](https://docs.google.com/presentation/d/1zPJjSpF919dl1g38yZpMrmKigfDHsK0ZfWOnwxA1K8s/edit?usp=sharing)
 
 ## Project Overview
-This project was completed as part of the Google Data Analytics Professional Certificate Capstone. The objective was to understand how annual members and casual riders use bikes differently. These insights serve as the foundation for a new marketing strategy aimed at converting casual riders into long-term annual members.
+This project was completed as part of the Google Data Analytics Professional Certificate Capstone. The objective was to understand how annual members and casual riders use bikes differently.
+These insights serve as the foundation for a new marketing strategy aimed at converting casual riders into long-term annual members.
 
 ## Data
 The analysis uses Divvy's (Chicago's public bike-share system) historical trip data between Jan-Nov of 2025, which is public data made available by Motivate International Inc, click [here](https://divvybikes.com/data-license-agreement) to view the agreement.
 
-**Data Schema:** of the combined
+**Data Schema:**
 
 <img width="767" height="617" alt="image" src="https://github.com/user-attachments/assets/4b5c4aa9-8218-4884-8383-d9ca185ac40c" />
 
@@ -27,29 +30,13 @@ The main findings can be summarize in this table:
 
 
 ## Recommendations
-Based on our findings, the following campaigns are proposed:
 
-**The “Casual” Mindset Shift:** 
+Our recommendations can be summarized in this diagram:
 
-The idea is to show the daily commuters of Chicago the benefits of using bikes for their daily mobility needs, such as:
+<img width="719" height="543" alt="image" src="https://github.com/user-attachments/assets/cc4f9055-52eb-4ba2-87c2-f56d7a9a2a91" />
 
-* Faster: By being able to avoid peak-hour traffic congestion, making travel time more predictable
-  
-* Cheaper: By highlighting the no-maintenance, no gas and low cost transportation
 
-* Lifestyle: By highlighting the low environmental carbon footprint, mental decompression and added exercise as a bonus, in an ever increasing sedentary and screen-centric world.
-Seasonal Promotions: Launch targeted digital campaigns during late spring and summer when casual ridership is highest.
 
-**The “Explorer” Pass**
-
-A membership designed specifically around the needs and usage patterns of this segment. By engaging this audience over a five-month peak season (May-September), we can normalize recurring use, leverage valuable insights and build direct communication, creating a strong foundation to convert Summer season users (members) to an annual plan down the line.
-
-Core Value Proposition:
-
-Flexibility: No rigid peak-hour rules, extended ride times.
-Longer trips: Longer ride windows before overage fees.
-Leisure timing: Optimized for weekends & afternoons.
-Summer-focused: Five-month peak season.
 
 Author
 Miguel Santos
