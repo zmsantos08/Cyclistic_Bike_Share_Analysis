@@ -1,0 +1,752 @@
+---
+title: '"The Sunday Explorer vs. The Monday Commuter:" Closing the Membership Gap'
+author: "Miguel Santos"
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    number-sections: true
+    theme: cosmo
+---
+
+# Executive Summary
+
+Analysis of 5.4 million Chicago's city bike trips reveals a sharp divide: **Members** use Cyclistic as a consistent mobility solution for **weekday commuting** (avg. 12 mins.), while **Casuals act as "Explorers"**, taking leisure trips along the lakeside on weekends (avg. 20 mins.).   
+While Members provide stable revenue, Casuals represent a high-engagement segment that currently views the service as a luxury rather than a daily necessity.
+
+To increase memberships and sustainable revenue streams, our marketing recommendations are built on 2 key ideas: 
+
+* **The "Casual" Mindset Shift:**
+
+This idea consists of **shifting the marketing narrative from "weekend recreation" to "weekday mobility solution"**.
+The campaign positions **biking as a faster, cheaper, and better lifestyle choice for daily commuting in Chicago**. 
+Riders benefit from predictable travel times by avoiding peak-hour traffic, lower transportation costs with no gas or maintenance, and meaningful lifestyle advantages—including reduced environmental impact, mental decompression, and built-in daily exercise. Together, these benefits reframe biking from a recreational option into a smart, sustainable choice for everyday urban mobility.
+
+* **The "Explorer" Pass**:
+
+This is a proposed five-month membership (May-September) designed to engage Chicago’s summer "Explorers".
+By **creating a membership** with a **value proposition aligned with "The Explorer" needs**, which encourages consistent ridership, enables direct communication, and generates valuable behavioral insights, we are creating a stronger pathway to convert seasonal users into **annual members over the long-term**.
+
+Together, **The "Casual" Mindset Shift** and **"The Explorer Pass"** form a cohesive strategy to unlock growth.
+By **reframing biking as a reliable, cost-effective, and lifestyle-enhancing mobility solution**, and pairing that message with a **seasonally tailored membership**, we meet riders where they are and guide them toward long-term value.   
+The message will be **amplified through trusted local digital influencers, radio, and podcasts**, this approach builds relevance, normalizes daily use, and creates a scalable pathway to grow memberships and sustainable revenue.
+
+# The Business Task
+
+The primary objective is to drive long-term revenue growth by **converting casual riders into annual members**.   
+Financial modeling has identified **annual members as the most profitable customer segment**.   
+This analysis aims to identify the specific behavioral triggers that can be leveraged in a targeted marketing campaign to maximize conversion rates.
+
+## Key Questions
+
+To achieve this objective, the analysis will answer three main questions:
+
+-   **How do annual members and casual riders use Cyclistic bikes differently?**
+-   **What value propositions would convert casual riders into annual members?**
+-   **How can Cyclistic use digital media to increase this conversion rate?**
+
+# Data Methodology & Cleaning
+
+**Dataset made available using this license [link](https://divvybikes.com/data-license-agreement).**
+
+**Click [here](#sec-appendix-clean) for the full data cleaning steps and scripts using BigQuery.**
+
+In order to analyse riders behavior, we gathered the most recent data **(Jan-Nov of 2025)** from Divvy (Chicago’s public bike-share system), provided in this [link](https://divvy-tripdata.s3.amazonaws.com/index.html).   
+We then proceeded to combine all 11 individual monthly tables into a single one "divyy_2025_raw", using **BigQuery**.
+
+The raw combined table "divyy_2025_raw" has **5,412,460 rows and 13 columns**, which is a very large dataset, hence why we chose **BigQuery for the data cleaning process**, and then exported the final table to **RStudio for visualizations and reporting**.
+
+In BigQuery, we added some **new columns** to expand our potential for quality insights:
+
+-   **Ride Duration (ride_length):** Quantifies user engagement to identify the primary utility of the service (e.g., commuting vs. leisure).
+-   **Duration Segmentation (ride_length_group):** Categorizes trip patterns to identify high-value user segments and optimize bike turnover rates.
+-   **Temporal Distribution (day_of_week):** Maps peak activity periods to align marketing efforts with high-traffic days.
+-   **Hourly Demand (hour_of_day):** Isolates specific peak-usage windows to differentiate between professional commuter cycles and leisure trips.
+
+**The final table "divyy_2025_cleaned" has the following schema:**
+
+```{r Table 1: Data Schema and Variable Descriptions}
+#| echo: false
+#| message: false
+#| warning: false
+library(knitr)
+divyy_2025_clean_schema <- data.frame(
+  "Field Name" = c("ride_id", "rideable_type", "started_at", "ended_at", 
+                   "start_station_name", "start_station_id", "end_station_name", 
+                   "end_station_id", "start_lat", "start_lng", "end_lat", 
+                   "end_lng", "member_casual", "ride_length", "ride_length_group", "day_of_week", "hour_of_day"),
+  "Data Type" = c("STRING", "STRING", "TIMESTAMP", "TIMESTAMP", "STRING", 
+                  "STRING", "STRING", "STRING", "FLOAT", "FLOAT", "FLOAT", 
+                  "FLOAT", "STRING", "FLOAT", "STRING","INTEGER","INTEGER"),
+  "Constraint" = rep("NULLABLE", 17),
+  "Definition" = c(
+    "Primary key for each unique trip",
+    "Bike category (Classic, Electric)",
+    "Trip commencement timestamp",
+    "Trip conclusion timestamp",
+    "Name of origin station",
+    "Unique ID of origin station",
+    "Name of destination station",
+    "Unique ID of destination station",
+    "Latitude coordinate of origin",
+    "Longitude coordinate of origin",
+    "Latitude coordinate of destination",
+    "Longitude coordinate of destination",
+    "Classification of user (Member or Casual)",
+    "Calculated trip duration (minutes)",
+    "Categorical grouping of ride durations",
+    "The specific day the trip occurred (1 - 7, Sunday - Saturday)",
+    "The integer hour portion of (started_at) timestamp, ranging from 0 (12:00 AM) to 23 (11:00 PM)."
+  )
+)
+kable(divyy_2025_clean_schema, 
+      caption = "Table 1: Data Schema and Variable Descriptions",
+      col.names = c("Field Name     ", "Data Type       ", "Constraint      ", "Description"))
+```
+
+## Events worth mentioning during the Data Cleaning Process
+
+### nulls:
+
+**We found:**\
+**start_station_name -\> 1,157,747 NULLS** (21.4% of total)\
+**start_station_id -\> 1,157,747 NULLS** (21.4% of total)\
+**end_station_name -\> 1,213,260 NULLS** (22.4% of total)\
+**end_station_id -\> 1,213,260 NULLS** (22.4% of total)\
+**end_lat -\> 5,413 NULLS** (0.01% of total)\
+**end_lng -\> 5,413 NULLS** (0.01% of total)
+
+**Action:**\
+**Keep the nulls**, there is a lot of useful data to be extracted from other fields.
+
+### ride_length
+
+#### Negative ride_length values
+
+**We found:**
+
+**29 trips with negative values** (an impossibility), all during 2025-11-02, between 1:00 am and 2:00 am. In the United States, on the **first Sunday of November (2025-11-02), at 2:00 am the clock jumps back to 1:00 am** (Daylight Saving Time), generating a situation where a trip can start at 1:55 am and end at 2:03 am, but it will show as ending at 1:03 am.
+
+**Action:**
+
+**Keep the 29 rows**, adding 1 hour back where ended_at < started_at on 2025-11-02.
+
+#### Oddly short ride_length values (< 1min)
+
+**We found:**
+
+**143,411 trips with ride_length < 1:00 minute** (likely false starts and other issues).   
+Possible explanations: 
+  * **False Starts:** A user unlocks a bike, realizes the seat is broken or a tire is flat, and docks it immediately. 
+  * **Station Issues:** A user tries to dock a bike, but the dock doesn't "catch" correctly, so they try again 30 seconds later. 
+  * **User Error:** A user changes their mind or accidentally triggers a rental via the app.
+
+**Action:**
+
+**Removed the 143,411 rows**, since none of these are meant to be "real" trips.
+
+#### Strange long trips (> 6 hours)
+
+**We found:**
+
+**5,423 rows with trips over 6 hours, with start_station_name but no end_station_name**.   
+Possible explanation: Long trips with start_station_name but no end_station_name are **likely "Lost," "Stolen," or "Abandoned" bike scenarios**.
+
+**Action:**
+
+**Deleted the 5,423 rows**, since they are likely not representative of real trips.
+
+# Key Findings & Trends (Member vs. Casual)
+
+To identify **effective conversion strategies**, we must first analyze the behavioral **distinctions between casual riders and annual members**, to ensure our value proposition aligns with their specific usage patterns.
+
+```{r setting up environment}
+#| message: false
+#| warning: false
+#| include: false
+library(tidyverse)
+library(scales)
+divyy_2025_cleaned <- readRDS("divyy_2025_cleaned.rds")
+```
+
+## Temporal Analysis: Member vs. Casual
+
+-   **Seasonality**: How user behavior changes over the year (Seasons).
+
+-   **Peak Activity (Days/Hours)**: To describe user ride patterns over the week and during the day.
+
+### Seasonality: Member vs. Casual (2025)
+
+```{r Seasonality: Member vs. Casual}
+#| echo: false
+#| message: false
+#| warning: false
+ggplot(divyy_2025_cleaned, aes(x = as.Date(started_at), fill = member_casual)) +
+  geom_area(stat = "bin", binwidth = 1, alpha = 0.8) +
+  scale_y_continuous(labels = scales::label_number(suffix = "K", scale = 1e-3)) +
+  labs(title = "Yearly Daily Rides", x = NULL, y = NULL, fill = "User Type") +
+  theme_minimal()
+```
+
+**We found:**   
+Bike demand exhibits strong seasonality, with a significant peak during the summer months and a sharp contraction in winter.   
+While both segments are weather-dependent, member usage remains notably more resilient year-round, whereas casual ridership shows much higher volatility in response to seasonal changes.
+
+### Weekly/Daily Activity Patterns: Member vs. Casual (2025)
+
+```{r Weekly/Daily Activity Patterns: Member vs. Casual}
+#| echo: false
+#| message: false
+#| warning: false
+   heatmap_data <- divyy_2025_cleaned %>%
+    group_by(member_casual, day_of_week, hour_of_day) %>%
+    summarise(number_of_rides = n(), .groups = 'drop') %>%
+    mutate(
+      day_name = factor(day_of_week, 
+                        levels = c(1, 2, 3, 4, 5, 6, 7), 
+                        labels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")),
+      relative_intensity = number_of_rides / max(number_of_rides)
+    )
+  
+ ggplot(heatmap_data, aes(x = day_name, y = hour_of_day)) +
+    geom_tile(aes(fill = member_casual, alpha = relative_intensity), color = "white") +
+    facet_wrap(~member_casual) +
+    scale_fill_manual(values = c("casual" = "#F8766D", "member" = "#00BFC4")) +
+    scale_alpha_continuous(range = c(0.1, 1.3), guide = "none") +
+    scale_y_continuous(
+    breaks = seq(0, 23, by = 4),
+    labels = c("12:00 AM", "4:00 AM", "8:00 AM", "12:00 PM", "4:00 PM", "8:00 PM"))+
+    labs(title = NULL,
+         x = NULL,
+         y = NULL) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 40, hjust = 1),
+      panel.grid = element_blank(),
+      aspect.ratio = 1.2,
+      strip.text = element_text(face = "bold", size = 11)
+    )
+```
+**We found:**   
+**Routine vs. Recreation:** **Members** primarily use the service for the Monday to Friday **daily commute**, creating sharp usage spikes at 8:00 AM and 5:00 PM.     
+Conversely, **Casual riders** use bikes significantly more during the **weekends** and whose activity builds slowly throughout the day. 
+Casual riders also show interest during the week, but mostly after work hours (4:00 PM - 6:00 PM)
+
+## Geospatial Analysis: Member vs. Casual
+
+### Top 200 Routes: Casuals (2025)
+
+```{r Top 200 Routes: Casual}
+#| echo: false
+#| message: false
+#| warning: false
+library(leaflet)
+library(dplyr)
+library(tidyr)
+library(geosphere)
+
+cleaned_data <- divyy_2025_cleaned %>%
+  drop_na(start_station_name, end_station_name)
+
+casual_rides <- cleaned_data %>% filter(member_casual == "casual")
+member_rides <- cleaned_data %>% filter(member_casual == "member")
+
+get_top_routes <- function(df, n_routes = 200) {
+  df %>%
+    group_by(start_station_name, end_station_name, start_lat, start_lng, end_lat, end_lng) %>%
+    summarise(total_rides = n(), .groups = 'drop') %>%
+    arrange(desc(total_rides)) %>%
+    slice_head(n = n_routes)
+}
+
+top_casual <- get_top_routes(casual_rides)
+top_member <- get_top_routes(member_rides)
+
+create_flow_map <- function(route_data, line_color, map_title) {
+  m <- leaflet(route_data) %>%
+    addProviderTiles(providers$CartoDB.Positron) %>%
+    addCircleMarkers(~start_lng, ~start_lat, color = "black", radius = 2, opacity = 0.5)
+  
+  for(i in 1:nrow(route_data)) {
+    m <- m %>%
+      addPolylines(lat = c(route_data[i,]$start_lat, route_data[i,]$end_lat),
+                   lng = c(route_data[i,]$start_lng, route_data[i,]$end_lng),
+                   weight = route_data[i,]$total_rides / 200, # Scale thickness
+                   color = line_color,
+                   opacity = 0.7,
+                   label = paste(route_data[i,]$start_station_name, "to", route_data[i,]$end_station_name))
+  }
+  return(m)
+}
+
+map_casual <- create_flow_map(top_casual, "#F8766D", "Top Casual Routes") 
+map_member <- create_flow_map(top_member, "#00BFC4", "Top Member Routes")
+map_casual
+```
+
+**We found:**   
+**Casual ridership is heavily concentrated along the lakeshore**, forming a high-intensity long corridor between East Solidarity Drive and West Fullerton Avenue.   
+This recreational pattern is anchored by primary clusters at Navy Pier and DuSable Lake Shore Dr & Monroe St, reflecting a strong preference for scenic, coastal routes.
+
+### Top 200 Routes: Members (2025)
+
+```{r Top 200 Routes: Member}
+#| echo: false
+#| message: false
+#| warning: false
+map_member
+```
+
+**We found:**  
+Contrary to **casual users who ride for longer (avg. 20 min) by the lakeside**, **member routes are shorter (avg. 12 min)** and concentrated in three strategic **urban hubs**: a Southern cluster in Hyde Park, a Center cluster at West Loop Gate, and a Northern cluster near West Fullerton Avenue.   
+This spatial distribution highlights a "spoke-and-hub" transit model, where the **network serves as a link between established residential neighborhoods and the city's primary commercial and institutional cores**.
+
+### Top 10 Hot Spots for Casual Riders (2025)
+
+```{r Top 10 Hot Spots for Casual Riders}
+#| echo: false
+#| message: false
+#| warning: false
+  starts <- divyy_2025_cleaned %>%
+    drop_na(start_station_name) %>%
+    select(station = start_station_name, member_casual)
+  
+  ends <- divyy_2025_cleaned %>%
+    drop_na(end_station_name) %>%
+    select(station = end_station_name, member_casual)
+  
+  station_traffic <- bind_rows(starts, ends) %>%
+    group_by(station, member_casual) %>%
+    summarize(total_activity = n(), .groups = "drop") %>%
+    arrange(desc(total_activity))
+  
+  top_casual_traffic <- station_traffic %>%
+    filter(member_casual == "casual") %>%
+    slice_max(total_activity, n = 10)
+  
+  ggplot(top_casual_traffic, aes(x = total_activity, y = reorder(station, total_activity))) +
+    geom_col(fill = "#F8766D") +
+    theme_minimal() +
+    labs(title = NULL,
+         x = NULL,
+         y = NULL,
+         caption = "Total number of Rides (Start + End Stations).") +
+    theme(plot.caption = element_text(hjust = 0.5, face = "italic", color = "grey30"))+
+    geom_text(aes(label = scales::comma(total_activity)), 
+            hjust = 1.1,
+            color = "white",        
+            fontface = "bold",
+            size = 3.5) +
+    scale_x_continuous(labels = scales::label_number(suffix = "K", scale = 1e-3))
+```
+
+**We found:**   
+Despite the main goal being a digital marketing campaign, we saw value in adding the **preferred hubs of casual users**, if not used for located ads, it's still relevant information for the **casual user profile** that can be leveraged for digital campaigns.   
+Top casual rider hubs identified: **DuSable Lake Shore Dr & Monroe St (59,130 visits) and Navy Pier (54,061 visits)**.
+
+## Equipment Preference & Trip Duration
+
+### Bike Preferences (%): Member vs. Casual (2025)
+
+```{r Bike Preferences: Member vs. Casual}
+#| echo: false
+#| message: false
+#| warning: false
+
+rideable_summary <- divyy_2025_cleaned %>%
+  filter(!is.na(rideable_type)) %>%
+  group_by(member_casual, rideable_type) %>%
+  summarise(number_of_rides = n(), .groups = 'drop_last') %>%
+  mutate(percent_label = number_of_rides / sum(number_of_rides)) %>%
+  ungroup()
+
+ggplot(rideable_summary, aes(x = member_casual, y = number_of_rides, fill = rideable_type)) +
+  geom_bar(stat = "identity", position = "fill") +
+  geom_text(aes(label = scales::percent(percent_label, accuracy = 1)), 
+            position = position_fill(vjust = 0.5), 
+            color = "white", 
+            fontface = "bold") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = NULL,
+       x = NULL,
+       y = NULL,
+       fill = "Bike Type") +
+  theme_minimal() +
+  theme(panel.grid.major.x = element_blank())
+```
+
+**We found:**   
+**Both groups** demonstrate a strong **preference for electric bikes**, which represents 63% for members and 65% for casual riders.  
+Classic bike usage is significant, with one-third of total rides, indicating that while new technology leads in volume, the traditional fleet remains a significant component of the business.
+
+### Average Ride Length per Bike Type: Member vs. Casual (2025)
+
+```{r "Average Ride Length per Bike Type: Member vs. Casual"}
+#| echo: false
+#| message: false
+#| warning: false
+
+   global_avg_val <- mean(divyy_2025_cleaned$ride_length, na.rm = TRUE)
+   
+   divyy_2025_cleaned %>%
+     group_by(member_casual, rideable_type) %>% 
+     summarize(avg_ride_length = mean(ride_length, na.rm = TRUE), .groups = 'drop') %>%
+     
+     ggplot(aes(x = member_casual, y = avg_ride_length, fill = rideable_type)) +
+     geom_col(position = "dodge") +
+     theme_minimal() +
+     scale_y_continuous(labels = unit_format(unit = " min")) + 
+     geom_text(
+       aes(label = round(avg_ride_length, 1)),    
+       position = position_dodge(width = 0.9),     
+       vjust = -0.5,                                
+       size = 3.5) +
+     geom_hline(yintercept = global_avg_val, linewidth = 1, color = "gold3") +
+     annotate("text", x = 0.5, y = global_avg_val + 1, 
+              label = paste("Global Avg:", round(global_avg_val, 1), "min"),
+              color = "black", fontface = "bold", hjust = 0) +
+     labs(title = NULL,
+          y = NULL, 
+          x = NULL)
+```
+
+**We found:**   
+**Casual riders have significantly higher average trip duration compared to Members**, across both bike categories.   
+The most pronounced gap occurs in classic bike usage (29.4 min vs. 13.6 min), suggesting that **members prioritize efficiency** and transit, while **casual riders utilize the fleet for longer** periods of time.
+
+### Ride Length Segments: Member vs. Casual (2025)
+
+```{r Ride Duration Breakdown: Member vs. Casual}
+#| echo: false
+#| message: false
+#| warning: false
+divyy_2025_cleaned$ride_length_group <- factor(divyy_2025_cleaned$ride_length_group, 
+                                               levels = c("Short Commute", 
+                                                          "Standard Trip", 
+                                                          "Extended Ride", 
+                                                          "Day Trip"))
+
+ggplot(data = divyy_2025_cleaned, aes(x = ride_length_group, fill = member_casual)) +
+  geom_bar(position = "fill") +
+  geom_text(
+    aes(label = after_stat(scales::percent(count / tapply(count, x, sum)[x], accuracy = 1))),
+    stat = "count",
+    position = position_fill(vjust = 0.5),
+    size = 4,
+    color = "white",
+    fontface = "bold"
+  ) +
+  scale_x_discrete(labels = c("Short Commute" = "Short Commute\n(0-6m)", 
+                              "Standard Trip" = "Standard Trip\n(6-30m)", 
+                              "Extended Ride" = "Extended Ride\n(30m-2h)",
+                              "Day Trip"      = "Day Trip\n(> 2h)")) +
+  scale_y_continuous(labels = scales::label_percent()) +
+  theme_minimal() +
+  labs(title = NULL,
+       x = NULL,
+       y = NULL,
+       fill = "User Type")
+```
+
+**We found:**   
+Usage patterns indicate that **Members favor efficiency, with 74% of under 6 min. trips** attributed to this segment.   
+In contrast, **Casual riders** are significantly more likely to engage in **extended use**, outperforming Members in both the 'Extended Ride' (61%) and 'Day Trip' (76%) categories.   
+These results are consistent with the much higher average of ride length for casuals (20 min.), compared to members (12.2 min).
+
+# Recommendations for the Marketing Campaign
+
+In order to better tailor our recommendations, we summarized the profile for each rider on the table below.
+
+!["Table 2: The Explorer vs. "The Commuter -- A profile of ridership patterns."](images/Rider_Profile_Table.png){fig-align="center"}
+
+Given the fact that these two profiles (Commuter vs. Explorer) are totally different, except for the fact that they both prefer electric bikes, our marketing recommendations are built upon these 2 keys pillars:
+
+-   **The "Casual" Mindset Shift** 
+
+-   **The "Explorer" Membership**
+
+## The "Casual" Mindset Shift
+
+### The Setup:
+
+The data clearly shows that Casual Riders aren't just "unregistered members", they **use bikes with a different purpose entirely**.
+Our core business is to provide an **accessible mobility solution**, 64% of our trips (3,374,869) are currently made by members and they already see the value on that daily value proposition.  
+We believe our marketing campaign should **focus on shifting**, not only our current casual members **perception of the bikes from a weekend luxury to a weekday solution**, but also a big part of the **commuting population of Chicago**.
+
+### The Target:
+
+Casual Riders are the main target but we see value in including the whole of Chicago's city daily commuting population.
+
+### The Idea:
+
+The idea is to show the daily commuters of Chicago the **benefits of using bikes for their daily mobility needs**, such as:
+
+-   **Faster**: By being able to avoid peak-hour traffic congestion, making travel time more predictable;
+
+-   **Cheaper**: By highlighting the no-maintenance, no gas and low cost transportation;
+
+-   **Lifestyle**: By highlighting the low environmental carbon footprint, mental decompression and added exercise as a bonus, in an ever increasing sedentary and screen-centric world.
+
+### The Goal:
+
+The objective is to drive a large-scale modal shift in Chicago’s transit landscape by converting the daily commuting population into a recurring annual membership base.   
+By positioning Cyclistic as the city’s primary professional mobility solution, we aim to capture a dominant share of the daily transit market and secure long-term revenue growth.
+
+## The "Explorer" Pass
+
+### The Setup:
+
+Besides highlighting the benefits of bike's everyday usage and bringing casual riders (and other commuters) closer to the available membership value proposition, we also suggest **creating a new membership, aligned with "The Explorer" profile**. 
+The data shows a significant winter trough for casual riders, a full year commitment may be the primary deterrent for this group. 
+
+### The Target:
+
+Casual Riders and other potential "Summer City Explorers".
+
+### The Idea:
+
+A membership designed specifically around the needs and usage patterns of this segment. 
+By engaging this audience over a five-month peak season (May-September), we can **normalize recurring use, leverage valuable insights and build direct communication**, creating a strong foundation to convert Summer season users (members) to an annual plan down the line.
+
+**Core Value Proposition:**
+
+-   **Flexibility:** No rigid peak-hour rules, extended ride times.
+-   **Longer trips:** Longer ride windows before overage fees.
+-   **Leisure timing:** Optimized for weekends & afternoons.
+-   **Summer-focused:** Five-month peak season.
+
+### The Goal:
+
+"The Explorer Pass" aims to **capture high-volume seasonal demand by removing the friction of a year-long commitment**, which currently acts as a barrier for casual riders.   
+By providing a tailored, five-month entry point, **Cyclistic can formalize the "Explorer" habit**, gain direct access to user data for targeted retention, and create a structured pathway to convert seasonal users into loyal annual members.
+
+## Media Channels:
+
+### Traditional
+
+-   Lakeside / Landmark outdoor locations -- Hot spots: DuSable Lake Shore Dr & Monroe St and Navy Pier stations.
+
+### Digital
+
+**Influencer Marketing:**  
+
+  * **@chicago.by.ren** -- Focuses on discovering hyper-local neighborhood gems, community events, and the daily experience of living like a true Chicago "local".  
+
+  * **@bored_in_chicago** -- Dedicated to unearthing unique city curiosities, transit hacks, and budget-friendly ways to navigate and enjoy Chicago without a car.  
+
+  * **@meganhomme** -- Provides a polished, professional aesthetic focused on urban lifestyle, "day-in-the-life" office routines, and efficient travel tips for the young professional.
+
+**Radio Stations:**
+
+-   **WBBM Newsradio:** The #1 choice for Chicago commuters. It is an all-news format that drivers tune into specifically for transit updates every ten minutes. An ad here during the 8:00 AM or 5:00 PM block reaches the exact person frustrated for being stuck in traffic.
+
+-   **WBEZ Chicago:** The local NPR affiliate. Listeners are highly engaged with programs like Morning Edition and All Things Considered.
+
+-   **101.9 THE MIX (WTMX):** A top-rated music and variety station. Its morning show is a staple for a broad demographic of Chicago office workers who want entertainment while idling in traffic.
+
+**Podcasts:**
+
+-   **The Block Club Chicago Podcast:** High-trust, hyper-local reporting.
+
+-   **Curious City (WBEZ):** A "cult favorite" that explores the mysteries and infrastructure of Chicago. Listeners are often curious about urban living and city hacks.
+
+-   **In the Loop (WBEZ):** A daily news podcast that "unpacks the headlines" for Chicagoans. It’s designed specifically for the morning commute duration (\~20-30 minutes).
+
+# Appendix: SQL Queries {#sec-appendix-clean}
+
+In this section, we included the **SQL code** used to **join, clean and aggregate** the Divyy 2025 dataset before importing it into RStudio.
+
+We combined all 2025 months (Jan-Nov) into one single table called "divyy_2025_raw" for EDA using BigQuery (Google Cloud Storage buckets) ![Bucket Screenshot](bucket.png)
+
+## SQL Code
+```sql
+-- 1. CREATING TABLE & COLUMNS --
+
+-- Creating the new staged table --
+
+CREATE OR REPLACE TABLE `capstone-483020.divyy_tripdata.divyy_2025_staged`
+AS SELECT *
+FROM `capstone-483020.divyy_tripdata.divyy_2025_raw`;
+
+-- Creating the new cleaned table, data is already in the right format --
+
+CREATE OR REPLACE TABLE `capstone-483020.divyy_tripdata.divyy_2025_cleaned` AS
+SELECT *
+FROM `capstone-483020.divyy_tripdata.divyy_2025_staged`;
+
+-- Adding ride_length column --
+
+ALTER TABLE `capstone-483020.divyy_tripdata.divyy_2025_cleaned`
+ADD COLUMN ride_length FLOAT64;
+
+-- Populating ride_length column --
+
+UPDATE `capstone-483020.divyy_tripdata.divyy_2025_cleaned`
+SET ride_length = CAST(TIMESTAMP_DIFF(ended_at, started_at, SECOND) AS FLOAT64) / 60 
+WHERE TRUE;
+
+-- Adding ride_length_group column --
+
+ALTER TABLE `capstone-483020.divyy_tripdata.divyy_2025_cleaned`
+ADD COLUMN ride_length_group STRING;
+
+UPDATE `capstone-483020.divyy_tripdata.divyy_2025_cleaned`
+SET ride_length_group =
+  CASE
+    WHEN ride_length < 6 THEN "Short Commute"
+    WHEN ride_length >= 6 AND ride_length < 30 THEN "Standard Trip"
+    WHEN ride_length >= 30 AND ride_length < 120 THEN "Extended Ride"
+  ELSE "Day Trip" 
+  END 
+WHERE TRUE;
+
+-- Adding day_of_week column --
+
+ALTER TABLE `capstone-483020.divyy_tripdata.divyy_2025_cleaned`
+ADD COLUMN day_of_week INT64;
+
+-- Populating day_of_week column --
+
+UPDATE `capstone-483020.divyy_tripdata.divyy_2025_cleaned`
+SET day_of_week = EXTRACT(DAYOFWEEK FROM started_at)
+WHERE TRUE;
+
+-- Adding hour_of_day column --
+
+ALTER TABLE `capstone-483020.divyy_tripdata.divyy_2025_cleaned`
+ADD COLUMN hour_of_day INT64;
+
+-- Populating hour_of_day column --
+
+UPDATE `capstone-483020.divyy_tripdata.divyy_2025_cleaned`\
+SET hour_of_day = EXTRACT(HOUR FROM started_at)\
+WHERE TRUE;
+
+-- 2. EDA & DATA CLEANING --
+
+-- Exploring ride_id duplicates --
+
+SELECT ride_id, COUNT(*) as duplicate_count
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned`
+GROUP BY ride_id
+HAVING COUNT(*) > 1;
+
+-- Exploring null values --
+
+SELECT   
+COUNTIF(ride_id IS NULL) AS null_ride_ids,
+COUNTIF(rideable_type IS NULL) AS null_rideable_type,
+COUNTIF(started_at IS NULL) AS null_started_at,
+COUNTIF(ended_at IS NULL) AS null_ended_at,
+COUNTIF(start_station_name IS NULL) AS null_start_station_name,
+COUNTIF(start_station_id IS NULL) AS null_start_station_id,
+COUNTIF(end_station_name IS NULL) AS null_end_station_name,
+COUNTIF(end_station_id IS NULL) AS null_end_station_id,
+COUNTIF(start_lat IS NULL) AS null_start_lat,
+COUNTIF(start_lng IS NULL) AS null_start_lng,
+COUNTIF(end_lat IS NULL) AS null_end_lat,
+COUNTIF(end_lng IS NULL) AS null_end_lng,
+COUNTIF(member_casual IS NULL) AS null_member_casual
+
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned`;
+
+-- Exploring the date fields --
+
+SELECT   
+MIN(started_at) as min_started, 
+MAX(started_at) as max_started, 
+MIN(ended_at) as min_ended, 
+MAX(ended_at) as max_ended
+
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned`;
+
+-- Exploring the rideable_type field --
+
+SELECT rideable_type, COUNT(*) as num_trips
+
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned`\
+GROUP BY rideable_type;
+
+-- Exploring the member_casual field --
+
+SELECT member_casual, COUNT(*) as num_trips
+
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned` 
+GROUP BY member_casual;
+
+-- Exploring ride_length --
+
+SELECT 
+  MIN(ride_length) as min_ride_length, 
+  AVG(ride_length) as avg_ride_length, 
+  MAX(ride_length) as min_ride_length 
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned`;
+
+-- Exploring ride_length negative values --
+
+SELECT 
+  started_at, 
+  ended_at, 
+  ride_length   
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned` 
+WHERE ride_length < 0;
+
+-- Adding 1 hour back to the 29 trips with negative ride_length --
+
+UPDATE `capstone-483020.divyy_tripdata.divyy_2025_cleaned` 
+SET ended_at = TIMESTAMP_ADD(ended_at, INTERVAL 1 HOUR) 
+WHERE ended_at < started_at;
+
+-- Re-run ride_length script to update values --
+
+UPDATE `capstone-483020.divyy_tripdata.divyy_2025_cleaned` 
+SET ride_length = TIMESTAMP_DIFF(ended_at, started_at, SECOND)/60 
+WHERE TRUE;
+
+-- Exploring ride_length oddly short trips --
+
+SELECT * 
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned` 
+WHERE ride_length < 1;
+
+-- Creating a cleaned table where ride_length > 1:00 minute --
+
+DELETE FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned`   
+WHERE ride_length < 1;
+
+-- Checking the new ride_length MIN, AVG, MAX --
+
+SELECT 
+  MIN(ride_length) as min_ride_length, 
+  AVG(ride_length) as avg_ride_length, 
+  MAX(ride_length) as max_ride_length
+
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned`;
+
+-- Exploring ride_length extremely high values --
+
+SELECT * 
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned` 
+WHERE ride_length >= 480 AND end_station_name IS NULL;
+
+-- Removing ride_length trips over 6 hours and empty end_station_name --
+
+DELETE FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned` 
+WHERE ride_length >= 480 AND end_station_name IS NULL;
+
+-- Exploring ride_length_group --
+
+SELECT 
+  ride_length_group, 
+  COUNT(*) AS total_rides, 
+  MIN(ride_length) AS min_in_group, 
+  MAX(ride_length) AS max_in_group
+
+FROM `capstone-483020.divyy_tripdata.divyy_2025_cleaned` 
+GROUP BY ride_length_group 
+ORDER BY min_in_group;
+
+```
